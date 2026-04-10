@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let audioEngine = AudioEngine()
     private let hookServer = HookServer()
     private let sessionWatcher = SessionWatcher()
+    private var settingsObservers: [NSObjectProtocol] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         registerDefaults()
@@ -22,6 +23,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupHookServer()
         setupSessionWatcher()
         installHooksIfNeeded()
+        observeSettings()
+
+        // Push initial settings to audio engine
+        syncSettingsToAudioEngine()
 
         if UserDefaults.standard.bool(forKey: "audioEnabled") {
             audioEngine.start()
@@ -214,6 +219,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             HookInstaller.install()
             UserDefaults.standard.set(true, forKey: "hooksInstalled")
             logger.info("Hooks auto-installed on first launch")
+        }
+    }
+
+    // MARK: - Settings Sync
+
+    private func syncSettingsToAudioEngine() {
+        let ud = UserDefaults.standard
+        audioEngine.updateSettings(
+            masterVolume: Float(ud.double(forKey: "volume")),
+            staticIntensity: Float(ud.double(forKey: "staticIntensity")),
+            idleStaticEnabled: ud.bool(forKey: "idleStaticEnabled")
+        )
+    }
+
+    private func observeSettings() {
+        let keys = ["volume", "staticIntensity", "idleStaticEnabled", "audioEnabled"]
+        for key in keys {
+            let observer = NotificationCenter.default.addObserver(
+                forName: UserDefaults.didChangeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                guard let self else { return }
+                self.syncSettingsToAudioEngine()
+
+                // Handle audioEnabled toggle from Settings window
+                let enabled = UserDefaults.standard.bool(forKey: "audioEnabled")
+                if enabled && !self.audioEngine.isPlaying {
+                    self.audioEngine.start()
+                } else if !enabled && self.audioEngine.isPlaying {
+                    self.audioEngine.stop()
+                }
+            }
+            settingsObservers.append(observer)
         }
     }
 }

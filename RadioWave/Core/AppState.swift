@@ -14,11 +14,6 @@ final class AppState: ObservableObject {
     @Published var activeSessionCount: Int = 0
     @Published var lastEventDescription: String = "No signal"
 
-    @AppStorage("audioEnabled") var audioEnabled: Bool = true
-    @AppStorage("idleStaticEnabled") var idleStaticEnabled: Bool = true
-    @AppStorage("volume") var volume: Double = 0.5
-    @AppStorage("staticIntensity") var staticIntensity: Double = 0.4
-
     private var targetFrequency: Double = 88.5
     private var frequencyTimer: Timer?
 
