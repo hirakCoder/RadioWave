@@ -236,10 +236,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func syncSettingsToAudioEngine() {
         let ud = UserDefaults.standard
+        // double(forKey:) returns 0.0 for unset keys even with register(defaults:)
+        // on some launch sequences, so clamp to sensible minimums
+        let vol = ud.object(forKey: "volume") != nil ? ud.double(forKey: "volume") : 0.5
+        let staticInt = ud.object(forKey: "staticIntensity") != nil ? ud.double(forKey: "staticIntensity") : 0.4
+        let idleStatic = ud.object(forKey: "idleStaticEnabled") != nil ? ud.bool(forKey: "idleStaticEnabled") : true
+
+        logger.info("Syncing settings: volume=\(vol), static=\(staticInt), idleStatic=\(idleStatic)")
         audioEngine.updateSettings(
-            masterVolume: Float(ud.double(forKey: "volume")),
-            staticIntensity: Float(ud.double(forKey: "staticIntensity")),
-            idleStaticEnabled: ud.bool(forKey: "idleStaticEnabled")
+            masterVolume: Float(vol),
+            staticIntensity: Float(staticInt),
+            idleStaticEnabled: idleStatic
         )
     }
 
