@@ -157,9 +157,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appState.activeSessionCount += 1
             appState.transition(to: .connected)
             audioEngine.transition(to: .connected)
+            audioEngine.playChime(.sessionConnect)
 
         case "sessionend":
             appState.activeSessionCount = max(0, appState.activeSessionCount - 1)
+            audioEngine.playChime(.sessionDisconnect)
             if appState.activeSessionCount == 0 {
                 appState.transition(to: .idle)
                 audioEngine.transition(to: .idle)
@@ -174,12 +176,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             audioEngine.transition(to: .toolUse)
 
         case "posttooluse":
-            // After tool completes, go back to generating (Claude is producing output)
+            // Tool completed — play a subtle ping, then back to generating
+            audioEngine.playChime(.toolComplete)
+            appState.transition(to: .generating)
+            audioEngine.transition(to: .generating)
+
+        case "posttoolusefailure":
+            // Tool failed
+            audioEngine.playChime(.failure)
             appState.transition(to: .generating)
             audioEngine.transition(to: .generating)
 
         case "stop":
-            // Response complete — back to connected (session still active)
+            // Response complete — success chime, back to connected
+            audioEngine.playChime(.success)
             appState.transition(to: .connected)
             audioEngine.transition(to: .connected)
 

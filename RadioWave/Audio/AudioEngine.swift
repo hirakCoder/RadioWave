@@ -10,6 +10,7 @@ final class AudioEngine: ObservableObject {
     private let engine = AVAudioEngine()
     private let noiseGen = NoiseGenerator()
     private let synthesizer = SignalSynthesizer()
+    private let chimes = EventChimes()
     private let logger = Logger(subsystem: "com.hirakbanerjee.RadioWave", category: "AudioEngine")
 
     private let format: AVAudioFormat
@@ -32,6 +33,11 @@ final class AudioEngine: ObservableObject {
     nonisolated(unsafe) private var tuningFromFreq: Double = 88.5
     nonisolated(unsafe) private var tuningToFreq: Double = 88.5
     nonisolated(unsafe) private var tuningFromState: RadioState = .idle
+
+    // Event chime state — which chime to overlay on current buffer
+    enum ChimeType { case none, success, toolComplete, sessionConnect, sessionDisconnect, failure }
+    nonisolated(unsafe) private var activeChime: ChimeType = .none
+    nonisolated(unsafe) private var chimeSamplesRemaining: Int = 0
 
     private var targetVolume: Float = 0.15
     private var crossfadeTimer: Timer?
@@ -133,6 +139,36 @@ final class AudioEngine: ObservableObject {
             synthesizer.fillError(buffer: toneBuffer, amplitude: 0.28 * vol)
             mixBuffers(source: toneBuffer, into: buffer)
         }
+
+        // Overlay event chime if one is active
+        renderChimeOverlay(into: buffer, vol: vol)
+    }
+
+    /// Renders a one-shot chime sound over the current ambient audio.
+    private func renderChimeOverlay(into buffer: AVAudioPCMBuffer, vol: Float) {
+        guard activeChime != .none, chimeSamplesRemaining > 0 else { return }
+
+        let chimeAmp = vol * 1.2  // chimes are slightly louder than ambient
+
+        switch activeChime {
+        case .success:
+            chimes.fillSuccessChime(buffer: buffer, amplitude: chimeAmp)
+        case .toolComplete:
+            chimes.fillToolCompletePing(buffer: buffer, amplitude: chimeAmp)
+        case .sessionConnect:
+            chimes.fillSessionConnected(buffer: buffer, amplitude: chimeAmp)
+        case .sessionDisconnect:
+            chimes.fillSessionDisconnected(buffer: buffer, amplitude: chimeAmp)
+        case .failure:
+            chimes.fillFailureTone(buffer: buffer, amplitude: chimeAmp)
+        case .none:
+            break
+        }
+
+        chimeSamplesRemaining -= Int(buffer.frameLength)
+        if chimeSamplesRemaining <= 0 {
+            activeChime = .none
+        }
     }
 
     /// Renders the tuning-dial sweep transition — static + fragments + resolving tone.
@@ -177,6 +213,22 @@ final class AudioEngine: ObservableObject {
     func stop() {
         engine.stop()
         isPlaying = false
+    }
+
+    /// Play a one-shot chime over the ambient audio.
+    @MainActor
+    func playChime(_ type: ChimeType) {
+        chimes.resetPhases()
+        activeChime = type
+        let duration: Double = switch type {
+        case .success: 0.45
+        case .toolComplete: 0.12
+        case .sessionConnect: 0.35
+        case .sessionDisconnect: 0.3
+        case .failure: 0.35
+        case .none: 0
+        }
+        chimeSamplesRemaining = Int(44100 * duration)
     }
 
     @MainActor
