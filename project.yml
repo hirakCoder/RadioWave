@@ -1,0 +1,36 @@
+name: RadioWave
+options:
+  bundleIdPrefix: com.hirakbanerjee
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.2"
+  minimumXcodeGenVersion: "2.38"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    CODE_SIGN_IDENTITY: "-"
+    PRODUCT_BUNDLE_IDENTIFIER: com.hirakbanerjee.RadioWave
+
+targets:
+  RadioWave:
+    type: application
+    platform: macOS
+    sources:
+      - RadioWave
+    settings:
+      base:
+        INFOPLIST_FILE: RadioWave/Info.plist
+        CODE_SIGN_ENTITLEMENTS: RadioWave/RadioWave.entitlements
+        PRODUCT_NAME: RadioWave
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        COMBINE_HIDPI_IMAGES: YES
+    schemes:
+      RadioWave:
+        build:
+          targets:
+            RadioWave: all
+        run:
+          config: Debug
