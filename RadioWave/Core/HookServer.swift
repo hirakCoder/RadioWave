@@ -119,7 +119,8 @@ final class HookServer {
     }
 
     private func sendHTTPResponse(connection: NWConnection) {
-        let response = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok"
+        let body = "{\"status\":\"ok\"}"
+        let response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: \(body.utf8.count)\r\nConnection: close\r\n\r\n\(body)"
         let data = Data(response.utf8)
         connection.send(content: data, completion: .contentProcessed { _ in
             connection.cancel()

@@ -6,6 +6,10 @@ RadioWave turns Claude Code into a radio station. When Claude is thinking, you h
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue) ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-orange) ![License MIT](https://img.shields.io/badge/License-MIT-green)
 
+<p align="center">
+  <img src="docs/assets/popover-screenshot.png" alt="RadioWave popover showing ON AIR state with waveform visualization" width="300">
+</p>
+
 ## How It Works
 
 RadioWave installs [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) that send real-time HTTP events to a local server running inside the app. Every prompt, tool call, and response triggers a state change with its own audio signature.

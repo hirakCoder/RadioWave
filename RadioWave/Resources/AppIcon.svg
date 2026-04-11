@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <clipPath id="iconClip">
+      <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228"/>
+    </clipPath>
+    <linearGradient id="barGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#28B84C"/>
+      <stop offset="100%" stop-color="#30D158"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#242426"/>
+      <stop offset="100%" stop-color="#1C1C1E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <g clip-path="url(#iconClip)">
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#bgGrad)"/>
+
+    <!-- Subtle radial glow behind bars -->
+    <radialGradient id="glow" cx="512" cy="580" r="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#30D158" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#30D158" stop-opacity="0"/>
+    </radialGradient>
+    <rect x="0" y="0" width="1024" height="1024" fill="url(#glow)"/>
+
+    <!-- Antenna / Signal Bars (5 bars, increasing height) -->
+    <g transform="translate(512, 620)">
+      <!-- Bar 1 (shortest) -->
+      <rect x="-200" y="-80" width="56" height="80" rx="12" fill="url(#barGrad)" opacity="0.6"/>
+      <!-- Bar 2 -->
+      <rect x="-104" y="-160" width="56" height="160" rx="12" fill="url(#barGrad)" opacity="0.7"/>
+      <!-- Bar 3 (center) -->
+      <rect x="-8" y="-260" width="56" height="260" rx="12" fill="url(#barGrad)" opacity="0.85"/>
+      <!-- Bar 4 -->
+      <rect x="88" y="-360" width="56" height="360" rx="12" fill="url(#barGrad)" opacity="0.95"/>
+      <!-- Bar 5 (tallest) -->
+      <rect x="184" y="-440" width="56" height="440" rx="12" fill="url(#barGrad)"/>
+    </g>
+
+    <!-- Sine wave overlay -->
+    <path d="M 120,480
+             C 180,430 240,430 300,480
+             C 360,530 420,530 480,480
+             C 540,430 600,430 660,480
+             C 720,530 780,530 840,480
+             C 870,458 900,448 920,460"
+          fill="none" stroke="#30D158" stroke-width="5" stroke-linecap="round"
+          opacity="0.25"/>
+
+    <path d="M 100,520
+             C 170,470 240,470 310,520
+             C 380,570 450,570 520,520
+             C 590,470 660,470 730,520
+             C 800,570 870,570 940,520"
+          fill="none" stroke="#30D158" stroke-width="3" stroke-linecap="round"
+          opacity="0.15"/>
+
+    <!-- Small antenna tip above tallest bar -->
+    <g transform="translate(512, 620)">
+      <line x1="212" y1="-440" x2="212" y2="-490" stroke="#30D158" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+      <circle cx="212" cy="-496" r="6" fill="#30D158" opacity="0.8"/>
+      <!-- Signal arcs from antenna -->
+      <path d="M 230,-510 C 250,-530 260,-530 270,-510" fill="none" stroke="#30D158" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+      <path d="M 240,-520 C 270,-550 285,-550 300,-520" fill="none" stroke="#30D158" stroke-width="2.5" stroke-linecap="round" opacity="0.25"/>
+    </g>
+  </g>
+</svg>
