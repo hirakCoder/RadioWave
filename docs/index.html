@@ -381,6 +381,8 @@
         </div>
         <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Requires macOS 14+, Xcode 15+, and <a href="https://github.com/yonaskolb/XcodeGen" style="color: var(--green); text-decoration: none;">XcodeGen</a>. Build and run &mdash; it appears in your menubar.</p>
 
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Or download the pre-built DMG from the <a href="https://github.com/hirakcoder/RadioWave" style="color: var(--green); text-decoration: none;">GitHub releases</a>.</p>
+
         <div class="cta-row">
             <a href="https://github.com/hirakcoder/RadioWave" class="btn btn-primary">
                 View Source
@@ -388,6 +390,39 @@
             <a href="https://buymeacoffee.com/hirakcoder" class="btn btn-coffee">
                 Support the Project
             </a>
+        </div>
+    </section>
+
+    <!-- Troubleshooting -->
+    <section class="features" id="troubleshooting">
+        <h2>Troubleshooting</h2>
+        <div style="max-width: 700px; margin: 0 auto;">
+            <div class="state-card" style="margin-bottom: 16px;">
+                <div class="state-label" style="color: var(--orange);">App won't open &mdash; "unidentified developer"</div>
+                <p>macOS blocks unsigned apps by default. Go to <strong>System Settings &rarr; Privacy &amp; Security</strong>, scroll down, and click <strong>"Open Anyway"</strong> next to the RadioWave message. You only need to do this once.</p>
+            </div>
+            <div class="state-card" style="margin-bottom: 16px;">
+                <div class="state-label" style="color: var(--orange);">No icon in the menubar</div>
+                <p>RadioWave is a menubar-only app &mdash; it does not appear in the Dock. Look for the antenna icon (&#x1F4E1;) in the <strong>top-right area</strong> of your screen, near the clock. If it's hidden behind the notch on newer MacBooks, try clicking the area to the left of your existing menubar icons.</p>
+            </div>
+            <div class="state-card" style="margin-bottom: 16px;">
+                <div class="state-label" style="color: var(--orange);">App installed but no sound</div>
+                <p>Click the menubar icon to open the popover. Check that the <strong>volume slider</strong> is not at zero. Also verify Claude Code is actually running &mdash; RadioWave only produces sound when it detects an active Claude Code session. Use <strong>Demo Mode</strong> (click the state buttons in the popover) to test audio without Claude.</p>
+            </div>
+            <div class="state-card" style="margin-bottom: 16px;">
+                <div class="state-label" style="color: var(--orange);">Not detecting Claude Code activity</div>
+                <p>RadioWave uses Claude Code hooks to receive real-time events. On first launch it auto-installs the hook to <code style="color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 13px;">~/.claude/settings.json</code>. If detection isn't working: (1) Restart Claude Code after installing RadioWave, (2) Check that the hook exists in your settings file, (3) Make sure port <strong>19847</strong> is not blocked by a firewall.</p>
+            </div>
+            <div class="state-card" style="margin-bottom: 16px;">
+                <div class="state-label" style="color: var(--orange);">DMG won't mount / "damaged" warning</div>
+                <p>Run this in Terminal to remove the quarantine flag:<br>
+                <code style="color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 13px;">xattr -cr ~/Downloads/RadioWave-v1.0.0.dmg</code><br>
+                Then double-click the DMG again. Alternatively, build from source using the 4 lines above.</p>
+            </div>
+            <div class="state-card">
+                <div class="state-label" style="color: var(--orange);">How to uninstall the hook</div>
+                <p>Open RadioWave &rarr; Settings &rarr; Connection tab &rarr; click <strong>"Uninstall Hook"</strong>. Or manually remove the RadioWave entry from <code style="color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 13px;">~/.claude/settings.json</code>.</p>
+            </div>
         </div>
     </section>
 </div>
