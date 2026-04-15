@@ -154,13 +154,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !appState.demoMode else { return }
         switch event.eventName.lowercased() {
         case "sessionstart":
-            appState.activeSessionCount += 1
+            appState.registerSession(id: event.sessionId, cwd: event.cwd)
+            // Only play audio if this session should be monitored
+            guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             appState.transition(to: .connected)
             audioEngine.transition(to: .connected)
             audioEngine.playChime(.sessionConnect)
 
         case "sessionend":
-            appState.activeSessionCount = max(0, appState.activeSessionCount - 1)
+            appState.removeSession(id: event.sessionId)
             audioEngine.playChime(.sessionDisconnect)
             if appState.activeSessionCount == 0 {
                 appState.transition(to: .idle)
@@ -168,33 +170,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
         case "userpromptsubmit":
+            appState.updateSessionEvent(id: event.sessionId, event: "thinking")
+            guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             appState.transition(to: .thinking)
             audioEngine.transition(to: .thinking)
 
         case "pretooluse":
+            appState.updateSessionEvent(id: event.sessionId, event: "tool: \(event.toolName)")
+            guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             appState.transition(to: .toolUse, toolName: event.toolName)
             audioEngine.transition(to: .toolUse)
 
         case "posttooluse":
-            // Tool completed — play a subtle ping, then back to generating
+            appState.updateSessionEvent(id: event.sessionId, event: "generating")
+            guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             audioEngine.playChime(.toolComplete)
             appState.transition(to: .generating)
             audioEngine.transition(to: .generating)
 
         case "posttoolusefailure":
-            // Tool failed
+            appState.updateSessionEvent(id: event.sessionId, event: "error")
+            guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             audioEngine.playChime(.failure)
             appState.transition(to: .generating)
             audioEngine.transition(to: .generating)
 
         case "stop":
-            // Response complete — success chime, back to connected
+            appState.updateSessionEvent(id: event.sessionId, event: "connected")
+            guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             audioEngine.playChime(.success)
             appState.transition(to: .connected)
             audioEngine.transition(to: .connected)
 
         case "notification":
-            // Brief alert then back to current
+            guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             let currentState = appState.radioState
             appState.transition(to: .error)
             audioEngine.transition(to: .error)

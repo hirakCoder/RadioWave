@@ -15,6 +15,14 @@ struct PopoverView: View {
 
             Divider().opacity(0.3)
 
+            // Session picker (only shown when multiple sessions active)
+            if appState.activeSessions.count > 1 {
+                sessionPicker
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                Divider().opacity(0.3)
+            }
+
             // Waveform
             WaveformView(state: appState.radioState)
                 .padding(.horizontal, 12)
@@ -175,6 +183,71 @@ struct PopoverView: View {
                         )
                 }
                 .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var sessionPicker: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("MONITORING")
+                .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 6) {
+                // "All" button
+                Button {
+                    appState.monitoredSessionId = nil
+                } label: {
+                    Text("ALL")
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(appState.monitoredSessionId == nil ? Color.radioGreen : .secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(appState.monitoredSessionId == nil ? Color.radioGreen.opacity(0.15) : .clear)
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(
+                                            appState.monitoredSessionId == nil ? Color.radioGreen.opacity(0.3) : Color.secondary.opacity(0.2),
+                                            lineWidth: 0.5
+                                        )
+                                )
+                        )
+                }
+                .buttonStyle(.plain)
+
+                // Individual session buttons
+                ForEach(Array(appState.activeSessions.values).sorted(by: { $0.startTime < $1.startTime })) { session in
+                    Button {
+                        appState.monitoredSessionId = session.id
+                    } label: {
+                        VStack(spacing: 1) {
+                            Text(session.displayName)
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .lineLimit(1)
+                            Text(session.lastEvent)
+                                .font(.system(size: 7, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(appState.monitoredSessionId == session.id ? Color.radioCyan : .secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(appState.monitoredSessionId == session.id ? Color.radioCyan.opacity(0.1) : .clear)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .strokeBorder(
+                                            appState.monitoredSessionId == session.id ? Color.radioCyan.opacity(0.3) : Color.secondary.opacity(0.2),
+                                            lineWidth: 0.5
+                                        )
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }

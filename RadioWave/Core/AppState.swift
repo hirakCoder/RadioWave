@@ -14,6 +14,46 @@ final class AppState: ObservableObject {
     @Published var activeSessionCount: Int = 0
     @Published var lastEventDescription: String = "No signal"
 
+    // Multi-session tracking
+    @Published var activeSessions: [String: SessionInfo] = [:]  // sessionId → info
+    @Published var monitoredSessionId: String? = nil  // nil = monitor all
+
+    struct SessionInfo: Identifiable {
+        let id: String          // sessionId
+        let cwd: String         // working directory
+        let startTime: Date
+        var lastEvent: String
+        var displayName: String { // short label for picker
+            let folder = (cwd as NSString).lastPathComponent
+            return folder.isEmpty ? "Session \(id.prefix(6))" : folder
+        }
+    }
+
+    func registerSession(id: String, cwd: String) {
+        if activeSessions[id] == nil {
+            activeSessions[id] = SessionInfo(id: id, cwd: cwd, startTime: Date(), lastEvent: "connected")
+        }
+        activeSessionCount = activeSessions.count
+    }
+
+    func removeSession(id: String) {
+        activeSessions.removeValue(forKey: id)
+        activeSessionCount = activeSessions.count
+        // If the removed session was the one being monitored, reset to all
+        if monitoredSessionId == id {
+            monitoredSessionId = nil
+        }
+    }
+
+    func updateSessionEvent(id: String, event: String) {
+        activeSessions[id]?.lastEvent = event
+    }
+
+    func shouldHandleEvent(sessionId: String) -> Bool {
+        guard let monitored = monitoredSessionId else { return true } // nil = all
+        return sessionId == monitored
+    }
+
     private var targetFrequency: Double = 88.5
     private var frequencyTimer: Timer?
 
