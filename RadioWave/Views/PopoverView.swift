@@ -4,6 +4,7 @@ struct PopoverView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var audioEngine: AudioEngine
     @AppStorage("audioEnabled") private var audioEnabled = true
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(spacing: 0) {
@@ -255,7 +256,7 @@ struct PopoverView: View {
     private var footerSection: some View {
         HStack {
             Button("Settings") {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                openSettings()
             }
             .buttonStyle(.plain)
             .font(.system(size: 11))

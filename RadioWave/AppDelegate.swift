@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import os
 
@@ -33,6 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         startIconAnimation()
+        discoverExistingSessions()
+        observeSessionSwitch()
         logger.info("RadioWave launched")
     }
 
@@ -238,6 +241,81 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             HookInstaller.install()
             UserDefaults.standard.set(true, forKey: "hooksInstalled")
             logger.info("Hooks auto-installed on first launch")
+        }
+    }
+
+    // MARK: - Session Switch Observer
+
+    private var sessionSwitchObserver: AnyCancellable?
+
+    /// When the user switches monitored session, reset audio to connected state
+    /// so the old session's sound stops immediately.
+    private func observeSessionSwitch() {
+        sessionSwitchObserver = appState.$monitoredSessionId
+            .dropFirst()  // Skip initial value
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    guard let self, !self.appState.demoMode else { return }
+                    // Reset to connected (silence the old session's sound)
+                    self.appState.transition(to: .connected)
+                    self.audioEngine.transition(to: .connected)
+                    self.audioEngine.playChime(.sessionConnect)
+                }
+            }
+    }
+
+    // MARK: - Session Discovery
+
+    /// Discover Claude Code sessions that were already running before RadioWave launched.
+    /// Uses `lsof` to find working directories of active `claude` processes.
+    private func discoverExistingSessions() {
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/bin/bash")
+            task.arguments = ["-c", """
+                for pid in $(pgrep -x claude); do
+                    cwd=$(lsof -p $pid 2>/dev/null | grep cwd | awk '{print $NF}')
+                    if [ -n "$cwd" ]; then
+                        echo "$pid:$cwd"
+                    fi
+                done
+            """]
+
+            let pipe = Pipe()
+            task.standardOutput = pipe
+            task.standardError = FileHandle.nullDevice
+
+            do {
+                try task.run()
+                task.waitUntilExit()
+
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                guard let output = String(data: data, encoding: .utf8) else { return }
+
+                let sessions = output.split(separator: "\n").compactMap { line -> (String, String)? in
+                    let parts = line.split(separator: ":", maxSplits: 1)
+                    guard parts.count == 2 else { return nil }
+                    let pid = String(parts[0])
+                    let cwd = String(parts[1])
+                    // Skip observer/plugin sessions
+                    if cwd.contains(".claude-mem") || cwd.contains("observer-sessions") { return nil }
+                    return (pid, cwd)
+                }
+
+                Task { @MainActor in
+                    guard let self else { return }
+                    for (pid, cwd) in sessions {
+                        self.appState.registerSession(id: "pid-\(pid)", cwd: cwd)
+                    }
+                    if !sessions.isEmpty {
+                        self.appState.transition(to: .connected)
+                        self.audioEngine.transition(to: .connected)
+                        self.logger.info("Discovered \(sessions.count) existing Claude sessions")
+                    }
+                }
+            } catch {
+                // Silent fail — hooks will pick up new events anyway
+            }
         }
     }
 
