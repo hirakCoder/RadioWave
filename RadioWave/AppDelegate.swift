@@ -155,6 +155,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleHookEvent(_ event: HookEvent) {
         guard !appState.demoMode else { return }
+
+        // Auto-register any session we haven't seen yet (handles sessions
+        // that started before RadioWave, where we missed the SessionStart event)
+        if !event.sessionId.isEmpty && appState.activeSessions[event.sessionId] == nil {
+            appState.registerSession(id: event.sessionId, cwd: event.cwd)
+        }
+
         switch event.eventName.lowercased() {
         case "sessionstart":
             appState.registerSession(id: event.sessionId, cwd: event.cwd)

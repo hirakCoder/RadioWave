@@ -19,19 +19,47 @@ final class AppState: ObservableObject {
     @Published var monitoredSessionId: String? = nil  // nil = monitor all
 
     struct SessionInfo: Identifiable {
-        let id: String          // sessionId
+        var id: String          // sessionId (may start as pid-XXX, updated when real ID arrives)
         let cwd: String         // working directory
         let startTime: Date
         var lastEvent: String
-        var displayName: String { // short label for picker
-            let folder = (cwd as NSString).lastPathComponent
-            return folder.isEmpty ? "Session \(id.prefix(6))" : folder
+        var realSessionId: String?  // the actual Claude session ID (once a hook event arrives)
+        var displayName: String {
+            let path = cwd as NSString
+            let folder = path.lastPathComponent
+            if folder.isEmpty || folder == "hirakbanerjee" {
+                return "Home"
+            }
+            // Show parent/folder for clarity (e.g., "Desktop/SwiftGen")
+            let parent = (path.deletingLastPathComponent as NSString).lastPathComponent
+            if parent.isEmpty || parent == "hirakbanerjee" || parent == "Users" {
+                return folder
+            }
+            return "\(parent)/\(folder)"
         }
     }
 
+    /// Register a session. If a discovered (pid-based) session has the same cwd,
+    /// upgrade it with the real session ID instead of creating a duplicate.
     func registerSession(id: String, cwd: String) {
-        if activeSessions[id] == nil {
-            activeSessions[id] = SessionInfo(id: id, cwd: cwd, startTime: Date(), lastEvent: "connected")
+        // Check if we already have a pid-based session with the same cwd
+        if let existingKey = activeSessions.first(where: {
+            $0.key.hasPrefix("pid-") && $0.value.cwd == cwd
+        })?.key {
+            // Upgrade: replace pid-based entry with real session ID
+            var session = activeSessions.removeValue(forKey: existingKey)!
+            session.id = id
+            session.realSessionId = id
+            activeSessions[id] = session
+            // If user was monitoring the old pid-based entry, switch to the new ID
+            if monitoredSessionId == existingKey {
+                monitoredSessionId = id
+            }
+        } else if activeSessions[id] == nil {
+            activeSessions[id] = SessionInfo(
+                id: id, cwd: cwd, startTime: Date(),
+                lastEvent: "connected", realSessionId: id
+            )
         }
         activeSessionCount = activeSessions.count
     }
@@ -39,7 +67,6 @@ final class AppState: ObservableObject {
     func removeSession(id: String) {
         activeSessions.removeValue(forKey: id)
         activeSessionCount = activeSessions.count
-        // If the removed session was the one being monitored, reset to all
         if monitoredSessionId == id {
             monitoredSessionId = nil
         }
@@ -49,9 +76,22 @@ final class AppState: ObservableObject {
         activeSessions[id]?.lastEvent = event
     }
 
+    /// Match by session ID or by cwd (for pid-discovered sessions that haven't been upgraded yet)
     func shouldHandleEvent(sessionId: String) -> Bool {
         guard let monitored = monitoredSessionId else { return true } // nil = all
-        return sessionId == monitored
+
+        // Direct ID match
+        if sessionId == monitored { return true }
+
+        // If monitoring a pid-based session, match by cwd instead
+        if monitored.hasPrefix("pid-"),
+           let monitoredCwd = activeSessions[monitored]?.cwd,
+           let eventCwd = activeSessions[sessionId]?.cwd,
+           monitoredCwd == eventCwd {
+            return true
+        }
+
+        return false
     }
 
     private var targetFrequency: Double = 88.5
