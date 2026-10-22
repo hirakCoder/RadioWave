@@ -7,7 +7,9 @@ RadioWave turns Claude Code into a radio station. When Claude is thinking, you h
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-blue) ![Swift 5.9](https://img.shields.io/badge/Swift-5.9-orange) ![License MIT](https://img.shields.io/badge/License-MIT-green)
 
 <p align="center">
-  <img src="docs/assets/popover-screenshot.png" alt="RadioWave popover showing ON AIR state with waveform visualization" width="300">
+  <img src="docs/assets/demo-session.gif" alt="A real Claude Code session fixing a failing test (left) while RadioWave switches between THINKING, TOOL USE and ON AIR (right)" width="800">
+  <br>
+  <sub>Real session, 30 s: Claude runs the tests, edits the file, re-runs — and you hear each step. <a href="docs/assets/demo-session.mp4">Watch with sound (mp4)</a>; the GIF is silent.</sub>
 </p>
 
 ## How It Works
