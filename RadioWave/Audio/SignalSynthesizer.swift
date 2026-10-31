@@ -521,6 +521,16 @@ final class SignalSynthesizer {
     // MARK: - Helpers
 
     func randomizeAllVariants() {
+        // `defaults write com.hirakbanerjee.RadioWave forcedVariant -int N` pins every state to variant N
+        // (used to record the sound tour, and handy if you simply prefer one station). Unset/-1 = rotate.
+        let forced = UserDefaults.standard.object(forKey: "forcedVariant") as? Int ?? -1
+        if forced >= 0 {
+            thinkingVariant = min(forced, 2)
+            toolUseVariant = min(forced, 2)
+            generatingVariant = min(forced, 2)
+            errorVariant = min(forced, 1)
+            return
+        }
         thinkingVariant = Int.random(in: 0...2)
         toolUseVariant = Int.random(in: 0...2)
         generatingVariant = Int.random(in: 0...2)

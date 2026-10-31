@@ -12,6 +12,12 @@ RadioWave turns Claude Code into a radio station. When Claude is thinking, you h
   <sub>Real session, 30 s: Claude runs the tests, edits the file, re-runs — and you hear each step. <a href="docs/assets/demo-session.mp4">Watch with sound (mp4)</a>; the GIF is silent.</sub>
 </p>
 
+## Every station
+
+A 1:44 tour of every sound the app makes — the six states, the three variants each of THINKING, TOOL USE and ON AIR, both ERROR sounds, and the five event chimes — recorded from the app's own demo mode with each variant pinned:
+
+**[▶ Watch the sound tour (mp4, sound on)](docs/assets/sound-tour.mp4)**
+
 ## How It Works
 
 RadioWave installs [Claude Code hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) that send real-time HTTP events to a local server running inside the app. Every prompt, tool call, and response triggers a state change with its own audio signature.
