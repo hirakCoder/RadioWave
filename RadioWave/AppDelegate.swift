@@ -167,60 +167,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appState.registerSession(id: event.sessionId, cwd: event.cwd)
             // Only play audio if this session should be monitored
             guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
-            appState.transition(to: .connected)
-            audioEngine.transition(to: .connected)
+            setRadioState(.connected)
             audioEngine.playChime(.sessionConnect)
 
         case "sessionend":
             appState.removeSession(id: event.sessionId)
             audioEngine.playChime(.sessionDisconnect)
             if appState.activeSessionCount == 0 {
-                appState.transition(to: .idle)
-                audioEngine.transition(to: .idle)
+                setRadioState(.idle)
             }
 
         case "userpromptsubmit":
             appState.updateSessionEvent(id: event.sessionId, event: "thinking")
             guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
-            appState.transition(to: .thinking)
-            audioEngine.transition(to: .thinking)
+            setRadioState(.thinking)
 
         case "pretooluse":
             appState.updateSessionEvent(id: event.sessionId, event: "tool: \(event.toolName)")
             guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
-            appState.transition(to: .toolUse, toolName: event.toolName)
-            audioEngine.transition(to: .toolUse)
+            setRadioState(.toolUse, toolName: event.toolName)
 
         case "posttooluse":
             appState.updateSessionEvent(id: event.sessionId, event: "generating")
             guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             audioEngine.playChime(.toolComplete)
-            appState.transition(to: .generating)
-            audioEngine.transition(to: .generating)
+            setRadioState(.generating)
 
         case "posttoolusefailure":
             appState.updateSessionEvent(id: event.sessionId, event: "error")
             guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             audioEngine.playChime(.failure)
-            appState.transition(to: .generating)
-            audioEngine.transition(to: .generating)
+            setRadioState(.generating)
 
         case "stop":
             appState.updateSessionEvent(id: event.sessionId, event: "connected")
             guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             audioEngine.playChime(.success)
-            appState.transition(to: .connected)
-            audioEngine.transition(to: .connected)
+            setRadioState(.connected)
 
         case "notification":
             guard appState.shouldHandleEvent(sessionId: event.sessionId) else { return }
             let currentState = appState.radioState
-            appState.transition(to: .error)
-            audioEngine.transition(to: .error)
+            setRadioState(.error)
             Task {
                 try? await Task.sleep(for: .seconds(1))
-                self.appState.transition(to: currentState)
-                self.audioEngine.transition(to: currentState)
+                self.setRadioState(currentState)
             }
 
         default:
@@ -234,8 +225,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sessionWatcher.onStateChange = { [weak self] state, toolName in
             Task { @MainActor in
                 guard let self, !self.appState.demoMode else { return }
-                self.appState.transition(to: state, toolName: toolName)
-                self.audioEngine.transition(to: state)
+                self.setRadioState(state, toolName: toolName)
             }
         }
         sessionWatcher.start()
@@ -264,8 +254,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { @MainActor in
                     guard let self, !self.appState.demoMode else { return }
                     // Reset to connected (silence the old session's sound)
-                    self.appState.transition(to: .connected)
-                    self.audioEngine.transition(to: .connected)
+                    self.setRadioState(.connected)
                     self.audioEngine.playChime(.sessionConnect)
                 }
             }
@@ -315,8 +304,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         self.appState.registerSession(id: "pid-\(pid)", cwd: cwd)
                     }
                     if !sessions.isEmpty {
-                        self.appState.transition(to: .connected)
-                        self.audioEngine.transition(to: .connected)
+                        self.setRadioState(.connected)
                         self.logger.info("Discovered \(sessions.count) existing Claude sessions")
                     }
                 }
@@ -342,6 +330,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             staticIntensity: Float(staticInt),
             idleStaticEnabled: idleStatic
         )
+    }
+
+    // MARK: - State changes (UI + audio together)
+
+    // Hooks can fire PreToolUse/PostToolUse ~100 ms apart. The UI used to flip instantly while the
+    // audio engine was still mid-sweep, so fast states were never heard and the two drifted apart
+    // (the demo recording made it visible). Both now change through this funnel with a minimum
+    // dwell, so every state is on screen and audible for at least `minimumDwell`.
+    private let minimumDwell: TimeInterval = 0.35
+    private var lastStateChange = Date.distantPast
+    private var pendingState: (RadioState, String)?
+    private var dwellTimer: Timer?
+
+    private func setRadioState(_ state: RadioState, toolName: String = "") {
+        let wait = minimumDwell - Date().timeIntervalSince(lastStateChange)
+        if wait > 0 {
+            pendingState = (state, toolName)   // only the latest pending change survives
+            dwellTimer?.invalidate()
+            dwellTimer = Timer.scheduledTimer(withTimeInterval: wait, repeats: false) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self, let (s, t) = self.pendingState else { return }
+                    self.pendingState = nil
+                    self.applyRadioState(s, toolName: t)
+                }
+            }
+            return
+        }
+        pendingState = nil
+        applyRadioState(state, toolName: toolName)
+    }
+
+    private func applyRadioState(_ state: RadioState, toolName: String) {
+        lastStateChange = Date()
+        appState.transition(to: state, toolName: toolName)
+        audioEngine.transition(to: state)
     }
 
     private func observeSettings() {

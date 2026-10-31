@@ -20,7 +20,8 @@ final class AudioEngine: ObservableObject {
     @MainActor @Published var isPlaying = false
 
     // Shared render-thread state
-    nonisolated(unsafe) private var currentState: RadioState = .idle
+    nonisolated(unsafe) private var currentState: RadioState = .idle   // what the render thread plays once a sweep settles
+    nonisolated(unsafe) private var targetState: RadioState = .idle    // where the current sweep is heading
     nonisolated(unsafe) private var currentVolume: Float = 0.15
     nonisolated(unsafe) private var masterVolume: Float = 0.5
     nonisolated(unsafe) private var staticIntensity: Float = 0.4
@@ -233,21 +234,31 @@ final class AudioEngine: ObservableObject {
 
     @MainActor
     func transition(to state: RadioState) {
-        guard state != currentState else { return }
+        // Compare against the state we are heading to, not the one the sweep last settled on.
+        // `currentState` only updates when the 0.6 s sweep completes, so with the old guard an
+        // A→B→A flip inside that window was rejected and the audio stayed parked on B while the
+        // UI showed A — the drift visible in the demo recording.
+        guard state != targetState else { return }
 
         // Pick a random sound variant for the new state
         synthesizer.randomizeAllVariants()
 
-        let fromState = currentState
+        // If a sweep is still running, continue from where the dial is now instead of restarting
+        // from the state two changes ago; otherwise a 100 ms PreToolUse→PostToolUse pair is never heard.
+        let fromState = isTuning ? targetState : currentState
+        let fromFreq = isTuning
+            ? tuningFromFreq + (tuningToFreq - tuningFromFreq) * tuningProgress
+            : fromState.frequencyMHz * 2.0  // scale to audible range
 
         if state == .generating {
             generatingStartTime = Date()
-        } else if currentState == .generating {
+        } else if targetState == .generating {
             generatingStartTime = nil
         }
+        targetState = state
 
         // Start tuning transition
-        tuningFromFreq = fromState.frequencyMHz * 2.0  // scale to audible range
+        tuningFromFreq = fromFreq
         tuningToFreq = state.frequencyMHz * 2.0
         tuningFromState = fromState
         tuningProgress = 0
@@ -271,10 +282,8 @@ final class AudioEngine: ObservableObject {
             }
         }
 
-        // Also crossfade volume
-        let oldVolume = volumeForState(fromState)
-        let newVolume = volumeForState(state)
-        crossfade(from: oldVolume, to: newVolume, duration: 0.8)
+        // Also crossfade volume — from the live level, so an interrupted fade doesn't jump
+        crossfade(from: currentVolume, to: volumeForState(state), duration: 0.8)
     }
 
     @MainActor
