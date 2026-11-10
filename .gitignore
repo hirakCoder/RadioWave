@@ -26,3 +26,6 @@ Package.resolved
 *.swp
 *~.nib
 RadioWave-v1.0.0.dmg
+
+# local-only screenshots for directory submissions (show the desktop / other sessions)
+docs/assets/submissions/

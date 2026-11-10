@@ -1,0 +1,31 @@
+# RadioWave
+
+> RadioWave is a free, open-source macOS menu bar app that turns Claude Code activity into radio-style sound. You hear, without looking at the terminal, whether Claude Code is idle, processing your prompt, running a tool, writing a response, or has hit an error.
+
+- Platform: macOS 14 (Sonoma) or later
+- Price: free. License: MIT
+- Current version: 1.0.1
+- Made by: Hirak Banerjee (https://hirakcoder.github.io/)
+- Not affiliated with Anthropic. It works with Claude Code through Claude Code's documented hooks.
+
+## What each sound means
+
+- No session: warm atmospheric static with stereo crackle
+- Session active, waiting for you: clean hiss with a pilot tone
+- Processing your prompt: a slow drone (one of three variants, chosen at random)
+- Running a tool: mechanical clockwork, dial-up modem or teletype pulses (random variant)
+- Generating a response: FM synthesis, a music-box arpeggio or a deep pulsar rhythm (random variant)
+- Error or signal lost: a descending siren or a digital glitch with a static burst
+- Every change of state plays a tuning-dial sweep, like turning a radio knob
+
+## How it works
+
+RadioWave runs a small HTTP server on localhost port 19847 and installs Claude Code hooks in ~/.claude/settings.json. Claude Code posts an event for every prompt, tool call and response, and the app changes the sound to match. If hooks are unavailable it falls back to watching the session transcript files. All audio is generated live with AVAudioEngine; there are no samples, and nothing leaves the machine.
+
+## Links
+
+- [Website](https://radiowave.beatroot.dev/): overview, demo video and download
+- [Download v1.0.1 (DMG)](https://github.com/hirakCoder/RadioWave/releases/download/v1.0.1/RadioWave-v1.0.1.dmg)
+- [Source code and README](https://github.com/hirakCoder/RadioWave)
+- [30-second demo of a real session (mp4, with sound)](https://radiowave.beatroot.dev/assets/demo-session.mp4)
+- [Tour of every sound (mp4, 1:44)](https://radiowave.beatroot.dev/assets/sound-tour.mp4)
